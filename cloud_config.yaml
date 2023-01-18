@@ -1,0 +1,8 @@
+#cloud-config
+ssh_pwauth: no
+users:
+  - name: vvsushkov
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCn+lVH5XJw/x/CdZteiKP+2oWVonzZ5t+Ti+aCm0LhBSgekliQq/5E0XV7Q8TDcoL7OvMf5FJ5W+/7pjk9UWvkn+CUuSjmlT0RflsjZRFHHO4em6NgN3oK85Y+AvKWzXHS8df+76JQAWSkndWOMe2AbrTJiWpz1j/tKqdc2uRnT/zxyJvipKripDTAjC+GjzIw0tSosPff/SNEhZU+WjEvEXMLYk1DyjlgvQkdzHCKxNO0QNU1Pxjjz/e8zew5iBqE7J2tx7Pm6jZkWu6iwc/2HtBR8/nyO8EoPldaF5GZHWseJuiWV55MKZ6Hw/R73UiDzU7g16sfUahn+59KPdrBi/z6m3VFTdTgB6YWiQ5ioIbHCdc4ldvRJ911/Ir7BnKcFXA7D66Za9d1zErB9x3hbQUjZyIZ4z3n8Ap8MNEfvSEZBmpHLNvHCT5CKsofoFSxP7T1AOwa7DgGGGTXEezt/JwYVzZNSP3m+mptiaNY2L1sU4VEZcHnJ8Hs9kEggYk= vvsushkov@vvsushkov-osx
