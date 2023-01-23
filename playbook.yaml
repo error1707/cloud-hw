@@ -1,0 +1,55 @@
+---
+- hosts: balancer
+  become: true
+  tasks:
+    - name: Update apt packages
+      become: true
+      apt:
+        update_cache: yes
+        cache_valid_time: 86400
+    - name: Install nginx
+      apt:
+        name=nginx
+        state=latest
+    - name: Remove file
+      file:
+        path: /etc/nginx/nginx.conf
+        state: absent
+    - name: Setup nginx conf
+      template:
+        src=nginx.conf.tpl
+        dest=/etc/nginx/nginx.conf
+      notify: restart nginx
+    - name: Get migrations
+      synchronize:
+        src=migrations
+        dest=/
+    - name: Get migrate
+      unarchive:
+        src: https://github.com/golang-migrate/migrate/releases/download/v4.15.2/migrate.linux-amd64.tar.gz
+        dest: /usr/local/bin/
+        remote_src: yes
+    - name: Create table in CH
+      shell: migrate -path /migrations -database 'clickhouse://{{ groups['clickhouse'][0] }}:9000?username=vvsushkov&password=password&database=db&x-multi-statement=true' up
+  handlers:
+    - name: restart nginx
+      service:
+        name=nginx
+        state=restarted
+- hosts: logbroker
+  become: true
+  tasks:
+    - name: Deploy logbroker app
+      docker_container:
+        image: error1707/logbroker
+        name: logbroker
+        state: started
+        auto_remove: true
+        pull: true
+        env:
+          LOGBROKER_CH_HOST: "{{ groups['clickhouse'][0] }}"
+          LOGBROKER_CH_USER: vvsushkov
+          LOGBROKER_CH_PASSWORD: password
+          LOGBROKER_CH_DATABASE: db
+        ports:
+          - "80:8000"

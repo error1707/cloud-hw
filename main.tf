@@ -1,18 +1,9 @@
-terraform {
-  required_providers {
-    yandex = {
-      source = "yandex-cloud/yandex"
-    }
-  }
-  required_version = ">= 0.13"
+data "yandex_compute_image" "container-optimized-image" {
+  family = "container-optimized-image"
 }
 
-provider "yandex" {
-  zone = "ru-central1-a"
-}
-
-resource "yandex_compute_instance" "vm" {
-  name = "vm"
+resource "yandex_compute_instance" "nginx" {
+  name = "nginx"
 
   resources {
     cores  = 2
@@ -21,30 +12,7 @@ resource "yandex_compute_instance" "vm" {
 
   boot_disk {
     initialize_params {
-      image_id = "fd8j8o5bguvqglmqls7q"
-    }
-  }
-
-  network_interface {
-    subnet_id = yandex_vpc_subnet.private-subnet.id
-  }
-
-  metadata = {
-    user-data = file("./cloud_config.yaml")
-  }
-}
-
-resource "yandex_compute_instance" "nat" {
-  name = "nat"
-
-  resources {
-    cores  = 2
-    memory = 2
-  }
-
-  boot_disk {
-    initialize_params {
-      image_id = "fd8o8aph4t4pdisf1fio"
+      image_id = data.yandex_compute_image.container-optimized-image.id
     }
   }
 
@@ -58,42 +26,40 @@ resource "yandex_compute_instance" "nat" {
   }
 }
 
-resource "yandex_vpc_network" "network" {
-  name = "network"
-}
+resource "yandex_compute_instance_group" "logbroker" {
+  name = "logbroker"
 
-resource "yandex_vpc_subnet" "public-subnet" {
-  name           = "public-subnet"
-  zone           = "ru-central1-a"
-  network_id     = yandex_vpc_network.network.id
-  v4_cidr_blocks = ["10.0.0.0/16"]
-}
+  instance_template {
+    resources {
+      cores  = 2
+      memory = 2
+    }
 
-resource "yandex_vpc_subnet" "private-subnet" {
-  name           = "private-subnet"
-  zone           = "ru-central1-a"
-  network_id     = yandex_vpc_network.network.id
-  route_table_id = yandex_vpc_route_table.nat-rt.id
-  v4_cidr_blocks = ["192.168.0.0/16"]
-}
+    boot_disk {
+      initialize_params {
+        image_id = data.yandex_compute_image.container-optimized-image.id
+      }
+    }
 
-resource "yandex_vpc_route_table" "nat-rt" {
-  network_id = yandex_vpc_network.network.id
+    network_interface {
+      subnet_ids = [yandex_vpc_subnet.private-subnet.id]
+    }
 
-  static_route {
-    destination_prefix = "0.0.0.0/0"
-    next_hop_address   = yandex_compute_instance.nat.network_interface.0.ip_address
+    metadata = {
+      user-data = file("./cloud_config.yaml")
+    }
   }
-}
-
-output "external_ip_address_nat" {
-  value = yandex_compute_instance.nat.network_interface.0.nat_ip_address
-}
-
-output "internal_ip_address_nat" {
-  value = yandex_compute_instance.nat.network_interface.0.ip_address
-}
-
-output "internal_ip_address_vm" {
-  value = yandex_compute_instance.vm.network_interface.0.ip_address
+  service_account_id = "aje9gkd35mata7oocicv"
+  allocation_policy {
+    zones = ["ru-central1-a"]
+  }
+  deploy_policy {
+    max_unavailable = 1
+    max_expansion = 0
+  }
+  scale_policy {
+    fixed_scale {
+      size = 2
+    }
+  }
 }
