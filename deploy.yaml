@@ -1,0 +1,66 @@
+---
+- hosts: vm
+  become: true
+  tasks:
+    - name: Deploy app
+      docker_container:
+        image: error1707/hw5
+        name: hw5
+        state: started
+        auto_remove: true
+        pull: true
+        ports:
+          - "80:8000"
+    - name: Download node exporter
+      unarchive:
+        src: https://github.com/prometheus/node_exporter/releases/download/v1.5.0/node_exporter-1.5.0.linux-amd64.tar.gz
+        dest: /home/vvsushkov/
+        remote_src: yes
+        mode: 0755
+    - name: Run node exporter
+      shell: nohup /home/vvsushkov/node_exporter-*.*-amd64/node_exporter &
+- hosts: metrics
+  become: true
+  tasks:
+    - name: Creates directory
+      file:
+        path: /home/vvsushkov/prometheus
+        state: directory
+    - name: Download prometheus
+      unarchive:
+        src: https://github.com/prometheus/prometheus/releases/download/v2.37.5/prometheus-2.37.5.linux-amd64.tar.gz
+        dest: /home/vvsushkov/prometheus
+        remote_src: yes
+        mode: 0755
+        extra_opts: [--strip-components=1]
+    - name: Setup conf
+      template:
+        src=metrics/prometheus.yaml.tpl
+        dest=/home/vvsushkov/prometheus/prometheus.yaml
+    - name: Run prometheus
+      shell: nohup /home/vvsushkov/prometheus/prometheus --config.file=/home/vvsushkov/prometheus/prometheus.yaml > /home/vvsushkov/prometheus/stdout.txt 2> /home/vvsushkov/prometheus/stderr.txt &
+    - name: Creates directory
+      file:
+        path: /home/vvsushkov/grafana
+        state: directory
+    - name: Update apt packages
+      become: true
+      apt:
+        update_cache: yes
+        cache_valid_time: 86400
+    - name: Install a list of packages
+      apt:
+        pkg:
+          - adduser
+          - libfontconfig1
+    - name: Download grafana
+      get_url:
+        url: https://dl.grafana.com/oss/release/grafana_9.3.6_amd64.deb
+        dest: /home/vvsushkov/grafana/
+    - name: Install grafana
+      apt:
+        deb: /home/vvsushkov/grafana/grafana_9.3.6_amd64.deb
+    - name: Start service grafana
+      ansible.builtin.service:
+        name: grafana-server
+        state: started
