@@ -3,7 +3,7 @@ resource "yandex_cdn_origin_group" "my_group" {
   use_next = true
 
   origin {
-    source = "www.vvsushkov.ru.storage.yandexcloud.net"
+    source = "s3.vvsushkov.ru.storage.yandexcloud.net"
   }
 }
 
@@ -12,7 +12,7 @@ resource "yandex_cdn_resource" "my_resource" {
   origin_protocol     = "https"
   origin_group_id     = yandex_cdn_origin_group.my_group.id
   options {
-    custom_host_header = "www.vvsushkov.ru.storage.yandexcloud.net"
+    custom_host_header = "s3.vvsushkov.ru.storage.yandexcloud.net"
   }
   ssl_certificate {
     type = "lets_encrypt_gcore"
