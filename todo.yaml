@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: todo
+spec:
+  containers:
+  - name: todo
+    image: error1707/todo:arm64
+    imagePullPolicy: Always
+    env:
+      - name: DATABASE_URI
+        value: postgresql://postgres:password@:1/postgres
+      - name: DATABASE_HOSTS
+        value: $(POSTGRES_SERVICE_HOST)
+    ports:
+    - containerPort: 80
